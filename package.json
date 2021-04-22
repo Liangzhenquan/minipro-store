@@ -1,6 +1,6 @@
 {
   "name": "miniprox",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": false,
   "description": "一个简单的微信小程序store仓库",
   "main": "index.js",
@@ -20,7 +20,9 @@
     "小程序",
     "store",
     "仓库",
-    "自动更新页面"
+    "响应式更新页面",
+    "自动更新",
+    "简单"
   ],
   "author": "liangzhenquan",
   "license": "ISC"
