@@ -23,7 +23,8 @@ App.js 创建一个仓库
 ```js
 import CreateStore from "miniprox";
 import state from "./store/index";
-const store = new CreateStore(state);
+// state 仓库数据， tabBar: []  //tabBar页面的路径：如：pages/index/index，无tabBar页面可不传
+const store = new CreateStore({ state, tabBar: [] });
 App({
   onLaunch() {},
   store,
@@ -89,6 +90,21 @@ index.wxml
 ```
 
 ## 更新日志
+
+### 4-25
+
+本地更新，解决了切换 tabbar 页面后（A -> B, B ->A）,在 tabbar 页面注册的组件无法刷新的问题
+new CreateStore 方法进行了改变
+
+```js
+new CreateStore(store)
+
+->
+new CreateStore({
+  state,
+  tabBar: ['pages/index/index']    //这是页面的tabber页面的路径,如果定义了tabbar页面，必传，否则会出现tabbar页面的组件数据无法更新的问题
+})
+```
 
 ### 4-22
 
