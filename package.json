@@ -1,6 +1,6 @@
 {
   "name": "minipro-store",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": false,
   "description": "一个简单的微信小程序store仓库",
   "main": "index.js",
