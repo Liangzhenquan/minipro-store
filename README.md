@@ -22,8 +22,8 @@
 App.js 创建一个仓库
 
 ```js
-import CreateStore from "minipro-store";
-import state from "./store/index";
+import CreateStore from 'minipro-store';
+import state from './store/index';
 // state 仓库数据， tabBar: []  //tabBar页面的路径：如：pages/index/index，无tabBar页面可不传
 const store = new CreateStore({ state, tabBar: [] });
 App({
@@ -38,7 +38,7 @@ store/index.js
 // 这里就是我们的数据全局保存的地方
 export default {
   userInfo: {},
-  name: "",
+  name: '',
 };
 ```
 
@@ -52,7 +52,7 @@ Page({
   },
   onTap() {
     app.store.dispatch({
-      name: "我是页面",
+      name: '我是页面',
     });
   },
 });
@@ -71,11 +71,29 @@ Component({
   methods: {
     onTap() {
       app.store.dispatch({
-        name: "我是组件",
+        name: '我是组件',
       });
     },
   },
 });
+```
+
+### useEffect
+
+很多时候，我们需要监听某个属性是否改变，如，登录成功后，判断 isLogin 是否为 true，然后再发送请求数据
+可在页面或组件中写入 useEffect,该函数返回一个数组，第一个参数是一个函数，第二个参数是一个 keys 数组
+如下监听 name 的变化，变化后会触发函数的执行
+
+```js
+onLoad() {
+  app.store.connect(this)
+},
+useEffect() {
+  return [(prev,next) => {
+    console.og('prev',prev)  //上一个值
+    console.og('next',next)  //修改后的值
+  },['name']
+}
 ```
 
 页面和组件的用法一致，都是在页面或组件创建的使用，通过 connect 方法订阅消息
@@ -91,6 +109,44 @@ index.wxml
 ```
 
 ## 更新日志
+
+### 5-12
+
+本次更新，添加了监听某个属性是否更新的功能
+
+```js
+// pages/index/index
+Page({
+  onLoad() {
+    app.store.connect(this)
+  },
+  useEffect((prev,next) => {
+    console.og('prev',prev)  //上一个值
+    console.og('next',next)  //修改后的值
+  },['name'])
+})
+```
+
+修改了 app.store.effect 的用法
+
+```js
+app.store.effect({
+  count: count + 1
+})
+//或
+getValue() {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        count: 999
+      })
+    },1000)
+  })
+},
+onClick() {
+  app.store.effect(this.getValue())
+}
+```
 
 ### 4-25
 

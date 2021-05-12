@@ -5,100 +5,85 @@
  * 2.wxml文件使用变量store即可访问到数据
  * 3.使用store.state直接修改store的state,不会更新视图，需要使用dispatch(data)
  */
-"use strict";
-import isPlainObject from "./utils/isPlainObject";
-const isFn = (fn) => typeof fn === "function";
-class CreateStore {
-  constructor({ state, tabBar }) {
-    this.listeners = {};
-    this.state = state;
+'use strict';
+class Store {
+  constructor(options) {
+    const { state, tabBar } = options;
+    this.prevState = null;
+    this.state = state || {};
+    this.subscribers = {};
     this.tabBar = tabBar || [];
-    this.ignores = [];
-    this.id = null;
-  }
-  updateState(newState) {
-    this.state = newState;
   }
   getState() {
     return this.state;
   }
-  reducer(previousState, action) {
+  reducer(state, action) {
     return {
-      ...previousState,
+      ...state,
       ...action,
     };
   }
-  publish() {
-    Object.values(this.listeners).forEach((item) => {
-      item.forEach((listener) =>
-        listener.setData({
-          store: this.state,
-        })
-      );
+  dispatch(action) {
+    const prevState = JSON.parse(JSON.stringify(this.state));
+    this.prevState = prevState;
+    this.state = this.reducer(prevState, action);
+    Object.entries(this.subscribers).forEach(([pageId, subscribers]) => {
+      subscribers.forEach((subscriber) => this.updateCurrent(subscriber));
     });
   }
-  async effect(fn, callback) {
-    let action = {};
-    if (isFn(fn)) {
-      action = await fn();
-    }
-    if (isPlainObject(fn)) {
-      action = action;
-    }
-    this.dispatch(action);
-    typeof callback === "function" && callback(this.state);
-  }
-  dispatch(action) {
-    //修改数据，更新视图
-    if (!isPlainObject(action)) {
-      throw new Error(`
-        action 必须是一个普通对象
-      `);
-    }
-    const newState = this.reducer(this.state, action);
-    if (newState) {
-      this.updateState(newState);
-      this.publish();
-    }
-  }
-  subscribe(listener) {
-    const id = listener.__wxWebviewId__;
-    if (this.listeners[id]) {
-      this.listeners[id].push(listener);
-    } else {
-      this.listeners[id] = [listener];
-    }
+  subscribe(subscriber) {
+    const id = subscriber.__wxWebviewId__;
+    this.subscribers[id]
+      ? this.subscribers[id].push(subscriber)
+      : (this.subscribers[id] = [subscriber]);
   }
   // 链接仓库
-  connect(listener) {
-    // console.log('链接store的pageId:',listener.__wxWebviewId__)
-    this.subscribe(listener); //添加观察者
-    if (listener.route) {
-      this.filter(listener); //过滤被销毁的页面的观察者
-    }
-    this.publishCurrent(listener); //修改数据
+  connect(subscriber) {
+    this.subscribe(subscriber);
+    this.unsubscribe(subscriber);
+    this.updateCurrent(subscriber);
   }
-  //页面或组件链接store后修改数据
-  publishCurrent(listener) {
-    listener.setData({
-      store: this.state,
-    });
-  }
-  filter(listener) {
+  // 取消订阅
+  unsubscribe(subscriber) {
+    const { route } = subscriber;
+    if (!this.tabBar.includes(route)) return;
     const pages = getCurrentPages();
-    const mapListeners = {};
-    if (this.tabBar.includes(listener.route)) {
-      this.ignores.push(listener.__wxWebviewId__);
-    }
+    const newSubscribers = {};
     pages.forEach((page) => {
       const id = page.__wxWebviewId__;
-      mapListeners[id] = this.listeners[id];
-      this.ignores.forEach((i) => {
-        mapListeners[i] = this.listeners[i];
-      });
+      newSubscribers[id] = this.subscribers[id];
     });
-    this.listeners = mapListeners;
+    this.newSubscribers = newSubscribers;
+  }
+  effect(fn) {
+    //异步
+    Promise.resolve(fn)
+      .then((value) => {
+        this.dispatch(value);
+      })
+      .catch();
+  }
+  useEffect(subscriber) {
+    // 监听某个属性是否更新
+    if (!this.prevState) return;
+    if (typeof subscriber.useEffect !== 'function') return;
+    const [fn, keys] = subscriber.useEffect();
+    const isUpdate = keys.some(
+      (key) => this.prevState[key] !== this.state[key],
+    );
+    isUpdate && fn.call(subscriber, this.prevState);
+  }
+  // connect时调用、dispatch时调用
+  updateCurrent(subscriber) {
+    //  更新当前订阅者数据
+    subscriber.setData(
+      {
+        store: this.state,
+      },
+      () => {
+        this.useEffect(subscriber);
+      },
+    );
   }
 }
-
-export default CreateStore;
+export default Store;

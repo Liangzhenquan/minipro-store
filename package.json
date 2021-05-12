@@ -1,15 +1,12 @@
 {
   "name": "minipro-store",
-  "version": "1.0.3",
+  "version": "1.1.4",
   "private": false,
   "description": "一个简单的微信小程序store仓库",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "files": [
-    "index.js"
-  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/Liangzhenquan/miniprox.git"
