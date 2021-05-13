@@ -9,7 +9,7 @@
 class Store {
   constructor(options) {
     const { state, tabBar } = options;
-    this.prevState = null;
+    this.prevState = state;
     this.state = state || {};
     this.subscribers = {};
     this.tabBar = tabBar || [];
@@ -41,7 +41,7 @@ class Store {
   connect(subscriber) {
     this.subscribe(subscriber);
     this.unsubscribe(subscriber);
-    this.updateCurrent(subscriber);
+    this.updateCurrent(subscriber, true);
   }
   // 取消订阅
   unsubscribe(subscriber) {
@@ -63,24 +63,31 @@ class Store {
       })
       .catch();
   }
+  // 首次加载，执行页面的useEffect
+  mounted(subscriber) {
+    if (typeof subscriber.useEffect !== 'function') return;
+    const [fn] = subscriber.useEffect();
+    fn.apply(subscriber, [this.prevState, this.state]);
+  }
   useEffect(subscriber) {
     // 监听某个属性是否更新
-    if (!this.prevState) return;
     if (typeof subscriber.useEffect !== 'function') return;
-    const [fn, keys] = subscriber.useEffect();
-    const isUpdate = keys.some(
-      (key) => this.prevState[key] !== this.state[key],
-    );
-    isUpdate && fn.call(subscriber, this.prevState);
+    const [fn, keys = []] = subscriber.useEffect();
+    const isUpdate =
+      keys.length === 0
+        ? true
+        : keys.some((key) => this.prevState[key] !== this.state[key]);
+    isUpdate && fn.apply(subscriber, [this.prevState, this.state]);
   }
   // connect时调用、dispatch时调用
-  updateCurrent(subscriber) {
+  updateCurrent(subscriber, firstMounted) {
     //  更新当前订阅者数据
     subscriber.setData(
       {
         store: this.state,
       },
       () => {
+        firstMounted && this.mounted(subscriber);
         this.useEffect(subscriber);
       },
     );
